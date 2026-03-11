@@ -1,0 +1,74 @@
+/* Custom CSS to supplement Tailwind */
+
+/* Scanner scanning animation */
+@keyframes scanPulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.02); opacity: 1; border-color: #3b82f6; }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+.scan-pulse {
+    animation: scanPulse 2s infinite ease-in-out;
+}
+
+/* Remove default select arrow for custom styling */
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.5em;
+}
+
+/* Smooth transitions */
+.view-section {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.view-section.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Hide standard HTML5 QR code elements to style them ourselves */
+#qr-shaded-region {
+    border-width: 4px !important;
+    border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+#reader__dashboard_section_csr span, 
+#reader__dashboard_section_swaplink {
+    font-size: 1.25rem !important;
+    font-weight: bold !important;
+    color: white !important;
+}
+
+#reader__camera_selection {
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    border-radius: 0.5rem !important;
+    font-size: 1.1rem !important;
+    background: white !important;
+    color: black !important;
+    width: 100% !important;
+}
+
+#reader__dashboard_section_csr button {
+    background-color: #0056b3 !important;
+    color: white !important;
+    padding: 1rem 2rem !important;
+    font-size: 1.25rem !important;
+    font-weight: bold !important;
+    border-radius: 0.75rem !important;
+    border: none !important;
+    margin-top: 0.5rem !important;
+    cursor: pointer !important;
+    width: 100% !important;
+}
+
+html5-qrcode-button-camera-start {
+    /* Targets library buttons */
+}
