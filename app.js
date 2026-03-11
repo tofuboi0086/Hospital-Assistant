@@ -167,14 +167,15 @@ document.addEventListener("DOMContentLoaded", () => {
             stopSpeaking();
             
             if (state.qrScannerInstance) {
-                state.qrScannerInstance.stop().then(() => {
-                    state.qrScannerInstance.clear();
-                    state.qrScannerInstance = null;
+                try {
+                    state.qrScannerInstance.stop().then(() => {
+                        switchView('v-dashboard');
+                    }).catch(() => {
+                        switchView('v-dashboard');
+                    });
+                } catch (e) {
                     switchView('v-dashboard');
-                }).catch(() => {
-                    // Force navigation even if camera fails to stop cleanly
-                    switchView('v-dashboard');
-                });
+                }
             } else {
                 switchView('v-dashboard');
             }
@@ -291,6 +292,7 @@ function openScannerView() {
         state.qrScannerInstance = new Html5Qrcode("reader");
     }
     
+    let lastRejectedTime = 0;
     const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
     
     // Use the comprehensive start method with camera selection if needed, but defaults to environment
@@ -299,7 +301,15 @@ function openScannerView() {
         config,
         (decodedText) => {
             // Success handler
-            stopScannerAndShowResult(decodedText);
+            if (isValidMedicineCode(decodedText)) {
+                stopScannerAndShowResult(decodedText);
+            } else {
+                const now = Date.now();
+                if (now - lastRejectedTime > 4000) { // Limit vibration to avoid spam on bad codes
+                    triggerVibrate(30); 
+                    lastRejectedTime = now;
+                }
+            }
         },
         (error) => {
             // Keep scanning, no verbose error handling needed for frame misses
@@ -310,14 +320,27 @@ function openScannerView() {
     });
 }
 
+function isValidMedicineCode(code) {
+    if (mockMedicines[code]) return true;
+    try {
+        const parsed = JSON.parse(code);
+        if (parsed && typeof parsed === 'object' && parsed.name) return true;
+    } catch(e) {}
+    return false;
+}
+
 function stopScannerAndShowResult(codeText) {
     if (state.qrScannerInstance) {
-        state.qrScannerInstance.stop().then(() => {
+        try {
+            state.qrScannerInstance.stop().then(() => {
+                processScannedCode(codeText);
+            }).catch(err => {
+                console.error("Fail stop", err);
+                processScannedCode(codeText); // Show anyway
+            });
+        } catch (e) {
             processScannedCode(codeText);
-        }).catch(err => {
-            console.error("Fail stop", err);
-            processScannedCode(codeText); // Show anyway
-        });
+        }
     } else {
         processScannedCode(codeText);
     }
@@ -326,20 +349,23 @@ function stopScannerAndShowResult(codeText) {
 function processScannedCode(code) {
     document.getElementById('scanner-wrapper').classList.add('hidden');
     
-    let med;
+    let med = null;
 
     // 1. Try to see if the QR Code itself contains the actual JSON medicine data!
     try {
         const parsed = JSON.parse(code);
-        // Ensure the JSON has the shape we expect, providing fallbacks if some info is missing
-        med = {
-            name: parsed.name || "Unknown Medicine",
-            dosage: parsed.dosage || "Unknown Dosage",
-            schedule: parsed.schedule || "Check package for schedule.",
-            warnings: parsed.warnings || "No specific warnings listed."
-        };
-    } catch(e) {
-        // 2. If it is NOT JSON format, fall back to checking our Mock DB for an ID string.
+        if (parsed.name) {
+            med = {
+                name: parsed.name,
+                dosage: parsed.dosage || "Unknown Dosage",
+                schedule: parsed.schedule || "Check package for schedule.",
+                warnings: parsed.warnings || "No specific warnings listed."
+            };
+        }
+    } catch(e) { }
+
+    // 2. Fall back to internal mock DB
+    if (!med) {
         med = mockMedicines[code] || mockMedicines["DEFAULT"];
     }
     
@@ -352,7 +378,7 @@ function processScannedCode(code) {
     
     triggerVibrate([500, 100, 500]); // Strong haptic on success
     
-    const readText = `Medicine Scanned successfully. Name: ${med.name}. Dosage: ${med.dosage}. Schedule: ${med.schedule}. Warnings: ${med.warnings}`;
+    const readText = `Medicine Scanned. Name: ${med.name}. Dosage: ${med.dosage}.`;
     state.currentMedicineText = readText; // Cache string
     speakText(readText, true);
 }
