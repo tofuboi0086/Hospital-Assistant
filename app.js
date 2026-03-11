@@ -382,3 +382,4 @@ function processScannedCode(code) {
     state.currentMedicineText = readText; // Cache string
     speakText(readText, true);
 }
+
